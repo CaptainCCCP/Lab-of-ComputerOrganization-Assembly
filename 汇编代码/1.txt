@@ -1,0 +1,86 @@
+DATAS SEGMENT
+    CHANGELINE DB 13,10,'$'
+DATAS ENDS
+
+STACKS SEGMENT
+    mov ax,1000H
+    mov ss,ax
+    mov sp,0010H
+STACKS ENDS
+
+CODE SEGMENT
+	ASSUME CS:CODE,DS:DATAS,SS:STACKS
+START: 
+	MOV AX,1001H
+	MOV ES,	AX
+	XOR AX,AX
+	XOR BX,BX
+	XOR CX,CX
+	XOR DX,DX
+	
+	MOV CX,999
+	
+S0: MOV AX,CX
+	MOV BL,100
+	DIV BL;AX/BL=ah余数al商
+	MOV DH,AL ; 商（百位数字）存入DH
+	
+	PUSH DH;百位
+	
+	MOV AL,AH ; 余数存入AL
+	MOV AH,0 ;AL赋0
+	MOV BL,10
+	DIV BL;取十位
+	
+	DEC SP
+	MOV SS:[SP],AL;al十位
+	
+	DEC SP
+	MOV SS:[SP],AH;ah个位
+	
+	ADD AL,AH;个位十位相加
+	MOV AH,0
+	MOV BL,10
+	DIV BL;相加除10
+	CMP AH,DH
+	JNZ S1;不相等则转移
+	MOV AX,CX;确认这个数满足条件，存入AX
+	
+	CALL ASCAX;转ASCII打印
+	
+	CMP CX,100
+	JBE sZ
+s1:	loop S0
+	
+	
+SZ: MOV AH,4CH
+	INT 21H
+;===============================
+ASCAX PROC NEAR
+	XOR AX,AX
+	XOR BX,BX;清零
+	XOR DX,DX
+	
+	INC SP
+	MOV SS:[SP],AX;个位
+	INC SP
+	MOV SS:[SP],BX;十位
+	POP DX;百位
+	OR DX,30H;百位的ASCII
+	MOV AH,6
+	INT 21H
+	
+	MOV DX,BX
+	MOV AH,6
+	INT 21H
+	
+	MOV DX,AX
+	MOV AH,6
+	INT 21H
+	
+	RET
+ASCAX ENDP
+;==================================
+CODE ENDS
+	END START
+

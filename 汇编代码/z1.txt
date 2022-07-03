@@ -1,0 +1,338 @@
+enterline macro		;定义回车换行的宏指令
+	mov dl,13
+	mov ah,2
+	int 21h
+	mov dl,10
+	mov ah,2
+	int 21h
+endm
+
+
+DATAS SEGMENT
+;___________________________计算变量_____________________________
+fail DB '0'
+pass DB '6'
+sum  DW 0
+num  DB 6
+flag db 0
+;___________________________随手用的临时变量_____________________________
+AFP DB ?
+BFP DB ?
+;__________________________储存单元/缓冲区__________________________
+stu DB 50,?,50 dup('$')
+SCORE DB 6 dup(0)
+;___________________________提示语句______________________________
+stringerript DB 'wrong input $' 
+string0 DB 'input 6 scores (0-100) : $' 
+failnum DB 'failed number:$'
+passnum DB 'passed number:$'
+average DB 'average score:$' 
+string1 DB 'reverse string is:$' 
+string2 db 'scores in order:$'
+DATAS ENDS
+;___________________________栈_____________________________
+STACKS SEGMENT
+;此处输入堆栈段代码
+DW 50 DUP(0)
+STACKS ENDS
+;____________________________初始化________________________________
+CODES SEGMENT
+ASSUME CS:CODES,DS:DATAS,SS:STACKS
+START:
+	MOV AX,DATAS
+	MOV DS,AX
+	MOV AX,STACKS
+    MOV SS,AX
+    MOV SP,100
+;___________________________完成输入_____________________________
+    XOR CX,CX
+    XOR AX,AX
+    XOR DX,DX
+	call INPUTSTU
+;__________输出不/及格人数、平均分_______________________________
+ENTERLINE
+    XOR CX,CX
+    XOR AX,AX
+    XOR DX,DX
+	call prtpf
+;__________冒泡排序______________________________________
+ENTERLINE
+    MOV CX,5
+    LEA DI,SCORE
+LOO1:    
+	CALL BUB
+	INC  DI
+    LOOP LOO1
+;_________________________输出排好序的成绩_______________________________
+	lea dx, string2
+	mov ah,9
+	int 21h
+	enterline
+    XOR CX,CX
+    XOR AX,AX
+    XOR DX,DX
+    MOV CX,6
+    LEA SI,SCORE
+    JMP PP1
+ROF:    
+	INC SI
+PP1:
+    MOV AL,[SI]
+    MOV AH,0
+    call CALCU
+    LOOP ROF
+;__________________________结束_______________________________
+MOV AH,4CH
+INT 21H
+;________________________________________________________________
+;_________________________以下为子程序___________________________
+;________________________________________________________________
+inputstu PROC NEAR
+stustart:
+	lea dx, string0;9号功能字符串输入缓冲区
+	mov ah,9
+	int 21h
+	enterline
+	mov ah,0ah 
+    lea dx,STU
+    int 21h
+;_______________一些寄存器的初始设置___________
+	xor bx,bx
+	LEA SI,STU
+	LEA DI,SCORE
+	MOV AL,[SI+2]
+	MOV BX,0
+	JMP S1
+;___________算法______________
+S0:
+	INC SI
+	MOV AL,[SI+2]
+s1:	
+	CMP AL,13
+	JE S5	
+	cmp al,' '
+	JE S3
+	
+	CMP al,48		;判断是否是数字
+	jb erriptstu
+	cmp al,57
+	ja erriptstu
+	
+NXT:	
+	SHL BX,1	
+	mov CX,BX
+	SHL CX,1
+	SHL CX,1
+	add BX,CX
+
+	XOR cx,cx;一位一位转换，存入scores储存单元
+	mov cL,al
+	sub cL,30H
+	add BX,CX	
+
+	jmp S0
+
+S3:	
+ 	add sum,BX
+ 	
+	cmp	BL,60
+	jae S4
+	inc fail
+	dec pass
+;-----------	
+S4:
+	mov	[DI],BX
+	cmp bx,100
+	ja erriptstu
+	cmp bx,0
+	jb erriptstu
+	add di,1
+	XOR BX,BX
+	JMP S0
+;-----------	
+S5:
+	mov	[DI],BX
+	cmp bx,100
+	ja erriptstu
+	cmp bx,0
+	jb erriptstu
+	add di,1
+	
+	ADD SUM,BX
+	CMP BL,60
+	JAE S6
+	INC FAIL
+	DEC PASS
+S6:
+	XOR BX,BX
+	jmp endstu
+	
+erriptstu:
+enterline
+	lea dx, stringerript
+	mov ah,9
+	int 21h
+endstu:
+ret
+inputstu endp
+;________________________________________________________________
+prtpf proc near
+	mov dx,offset failnum
+	mov ah,9
+	int 21h
+	mov dl,fail
+	mov ah,2
+	int 21h
+	enterline
+	mov dx,offset passnum
+	mov ah,9
+	int 21h
+	mov dl,pass
+	mov ah,2
+	int 21h
+;________________________________________________________________	
+	ENTERLINE 
+	mov dx,offset average
+	mov ah,9
+	int 21h
+	XOR AX,AX
+	XOR DX,DX
+	;-----------	
+	MOV AX,SUM
+	cmp ax,600
+	je special
+	mov cl,6
+	div cl			;总和除6 此时al商ah余数
+	
+	mov BFP,al		;b商a余
+	mov AFP,ah
+	xor ax,ax
+	mov cl,10
+	mov al,BFP
+	div cl
+	
+	mov cl,ah
+	
+	add al,30h
+	mov dl,al
+	mov ah,02h
+	int 21h			;十位
+	add cl,30h
+	mov dl,cl
+	mov ah,02h
+	int 21h			;个位
+	
+	mov dl,2eh	;.
+	mov ah,02h
+	int 21h
+
+	mov cl,10
+	mov al,AFP
+	mul cl	
+	
+	mov cl,6
+	div cl			;al商ah余数
+	
+	add al,30h
+	mov dl,al
+	mov ah,02h
+	int 21h
+	jmp nonospecial
+special:
+	mov dl,49
+	mov ah,2
+	int 21h
+	mov dl,48
+	mov ah,2
+	int 21h
+	mov dl,48
+	mov ah,2
+	int 21h
+	mov dl,2eh
+	mov ah,2
+	int 21h
+	mov dl,48
+	mov ah,2
+	int 21h
+nonospecial:
+	ret
+prtpf endp
+;____________________________冒泡排序________________________________
+BUB PROC NEAR
+PUSH CX
+PUSH BX
+
+  MOV CX,5
+FORFOR:;\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+    MOV BX,0
+FORFORFOR:;================================
+
+    MOV AL,SCORE[BX]
+    CMP AL,SCORE[BX+1]
+    
+    JLE FORFORFORFOR;be
+    
+    MOV AL,SCORE[BX]
+    MOV DL,SCORE[BX+1]
+    MOV SCORE[BX],DL
+    MOV SCORE[BX+1],AL
+    
+FORFORFORFOR:
+    INC BX
+    CMP BX,CX
+    
+    JL FORFORFOR;===========================
+    
+    LOOP FORFOR;\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+  POP BX
+  POP CX
+  RET
+BUB ENDP
+;________________________________________________________________
+CALCU PROC NEAR
+PUSH BX
+PUSH CX
+
+	MOV BL,100
+	DIV BL
+	MOV CH,AH;商al余数ah
+	MOV DL,AL
+	ADD DL,30H
+	CMP DL,0
+	JE CAL1
+	MOV AH,2
+	INT 21H;百位
+	
+CAL1:	
+	MOV AL,CH
+	MOV AH,0
+	MOV BL,10
+	DIV BL
+	MOV CH,AH;十位al个位ah
+	MOV DL,AL
+	ADD DL,30H
+	MOV AH,2
+	INT 21H;十位
+	MOV DL,CH
+	ADD DL,30H
+	MOV AH,2
+	INT 21H
+	
+	MOV DL,' ';空格隔开
+	MOV AH,2
+	INT 21H
+	
+	POP CX
+	POP BX
+RET
+CALCU ENDP
+;________________________________________________________________
+CODES ENDS
+END START
+
+
+
+
+
+

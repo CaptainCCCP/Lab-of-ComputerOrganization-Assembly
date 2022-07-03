@@ -1,0 +1,246 @@
+enterline macro
+mov dl,13;回车
+mov ah,2
+int 21h
+mov dl,10;换行
+mov ah,2
+int 21h
+endm
+;=========================================
+DATAS SEGMENT
+;提示
+stringerript DB 'error input $' 
+string0 DB 'input 6 scores (0-100) : $' 
+failnum DB 'failed:$'
+passnum DB 'passed:$'
+average DB 'average score:$' 
+string1 DB 'reverse string is:$' 
+;-----------
+fail DB '0'
+pass DB '6'
+;-----------
+sum  DB 0
+num  DB 6
+cont DB 0
+;-----------
+afterpoint DB ?
+beforepoint DB ?
+;-----------数据
+stu DB 0,0,0,0,0,0
+;-----------
+DATAS ENDS
+;=========================================
+STACKS SEGMENT
+;此处输入堆栈段代码
+STACKS ENDS
+;=========================================
+CODES SEGMENT
+ASSUME CS:CODES,DS:DATAS,SS:STACKS
+START:
+MOV AX,DATAS
+MOV DS,AX
+;====================
+call inputstu
+;====================
+call prtpf
+;=========================================
+;输出sum/6
+enterline
+	mov dx,offset average;提示
+	mov ah,9
+	int 21h
+
+	xor ax,ax
+	mov cl,6
+	
+	lea di,sum;mov ax,sum
+	mov ax,[di]
+	mov di,0
+	
+	div cl			;al商ah余数
+
+	mov beforepoint,al
+	mov afterpoint,ah
+	xor ax,ax
+	mov cl,10
+	mov al,beforepoint
+	div cl			;al商ah余数
+	
+	mov cl,ah
+
+	add al,30h
+	mov dl,al
+	mov ah,02h
+	int 21h			;十位
+	add cl,30h
+	mov dl,cl
+	mov ah,02h
+	int 21h			;个位
+	mov dl,2eh		;小数点
+	mov ah,02h
+	int 21h
+;打印小数
+	mov cl,10
+	mov al,afterpoint
+	mul cl			;小数部分乘10
+
+	mov cl,6
+	div cl			;al商ah余数
+	
+	add al,30h
+	mov dl,al
+	mov ah,02h
+	int 21h
+;=========================================
+enterline
+;外循环
+	mov bx,1
+wai:
+;把si给bx	bx外，si内
+	mov si,1
+nei:				;内循环
+	mov cx,[si+1]
+	cmp	[si],cx
+	jbe next7
+	xchg [si],cx
+	xchg [si+1],cx
+	next7:
+	inc si
+	inc si
+
+	mov ax,12
+	sub ax,bx
+;si与11-bx比较
+	cmp si,ax
+
+	jne nei
+
+;wai
+	inc bx
+	inc bx
+
+	cmp bx,11
+	jne wai
+
+
+	mov si,1
+shuchu:   	
+	xor ax,ax
+	mov bl,10		;输出
+	mov ax,[si]
+	div bl			;al商ah余数
+	mov bl,ah
+	add al,30h
+	mov dl,al
+	mov ah,02h
+	int 21h
+	add bl,30h
+	mov dl,bl
+	mov ah,02h
+	int 21h 
+
+	mov dl,' '
+	mov ah,02h
+	int 21h 
+
+	inc si
+	inc si
+	cmp si,13
+	jne shuchu
+;=========================================
+erript:
+errcal:
+MOV AH,4CH
+INT 21H
+;========================================
+inputstu PROC NEAR
+	lea si,stu
+	
+	lea dx, string0
+	mov ah,9
+	int 21h
+	enterline
+	
+stustart:
+	xor bx,bx
+input:
+;-----------	
+	mov ah,1H
+	int 21H
+	inc BYTE PTR cont	
+s0:
+	cmp cont,17
+	jne s1;不是最后一个输入就跳转
+	mov ah,1H
+	int 21H	
+	cmp al,13
+	jz endstu;获得6个数之后回车结束
+	jmp erriptstu
+s1:		
+	cmp al,' '  ;与空格比较
+	JZ next1
+	
+	cmp al,'0'		;边界检查：如果输入不是0-9的数字，就报错
+	jb erriptstu
+	cmp al,'9'
+	ja erriptstu
+	
+	SHL bx,1	
+	mov cx,bx
+	SHL cx,1
+	SHL cx,1	;
+	add bx,cx	;bx*10 原来的数提高一位
+
+	XOR cx,cx
+	mov cl,al
+	sub cl,30H
+	add bx,cx	
+
+	jmp input
+
+next1:	
+ 	lea di,sum
+	add [di],bx
+	mov di,0
+;-----------	
+	cmp	bx,60
+	jae next2
+	inc fail
+	dec pass
+;-----------	
+next2:
+	mov	[si],bx
+	inc si
+	jne stustart
+;-----------	
+	jmp endstu
+erriptstu:
+	lea dx, stringerript
+	mov ah,9
+	int 21h
+	enterline
+	jmp stustart
+	endstu:
+ret
+inputstu endp
+;========================================
+prtpf proc near
+	mov dx,offset failnum
+	mov ah,9
+	int 21h
+	mov dl,fail
+	mov ah,2
+	int 21h
+	enterline
+	mov dx,offset passnum
+	mov ah,9
+	int 21h
+	mov dl,pass
+	mov ah,2
+	int 21h
+	ret
+prtpf endp
+;========================================
+CODES ENDS
+END START
+

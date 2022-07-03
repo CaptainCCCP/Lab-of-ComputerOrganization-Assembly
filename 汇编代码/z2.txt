@@ -1,0 +1,197 @@
+enterline macro		;定义回车换行的宏指令
+	mov dl,13
+	mov ah,2
+	int 21h
+	mov dl,10
+	mov ah,2
+	int 21h
+endm
+;_______________________________________________________
+DATAS SEGMENT
+    ;此处输入数据段代码  
+STRING0 db "please input a string:$"
+STRING2 DB "THE BIGGEST ASCII IS:$"
+INPUTSTR DB 50,?,50 dup('$')
+;能容纳字符个数;实际接受的字符个数;字符串缓冲区
+ERROR DB "ERRORERROR$"
+ERRORipt DB "ERRORinput$"
+output db 'LENGTH is$:' 
+input db 'Please Input STR:$'
+flag db 0
+flag1 db 0
+NUM DB 0
+NUMIN DB 4,?,4 DUP(0)
+;_______________________________________________________
+DATAS ENDS
+
+STACKS SEGMENT
+    ;此处输入堆栈段代码
+    DW 50 DUP(0)
+STACKS ENDS
+;_______________________________________________________
+CODES SEGMENT
+    ASSUME CS:CODES,DS:DATAS,SS:STACKS
+START:
+    MOV AX,DATAS
+    MOV DS,AX
+    MOV AX,STACKS
+    MOV SS,AX
+    MOV SP,100
+    ;此处输入代码段代码
+    LEA dx,STRING0  ;提示
+    mov ah,09h
+    int 21h
+    enterline
+    ;=========
+    mov ah,0ah             ;输入长字符串
+    lea dx,INPUTSTR
+    int 21h
+    ;=========
+    XOR AX,AX
+	XOR BX,BX
+    MOV BX,30        ;边界判断
+    
+    LEA si,INPUTSTR
+    MOV AX,[SI+1]
+    MOV AH,0
+    CMP AX,BX
+    JA ERRiptipt
+    MOV BX,15
+    CMP AX,BX
+    JB ERRiptipt
+    ;=========
+    ENTERLINE
+    XOR CX,CX
+    XOR AX,AX
+    XOR DX,DX
+    CALL CHANGE;==============输入新的字符以及大小写替换
+    ;=========
+    ENTERLINE
+    XOR CX,CX
+    XOR AX,AX
+    XOR DX,DX
+    CALL DELETE
+;_______________________________________________________
+JMP STOP
+ERR:
+	enterline
+	MOV DX,OFFSET ERROR;报错
+	MOV AH,09H
+	INT 21H
+	jmp stop
+erriptipt:
+	enterline
+	MOV DX,OFFSET ERRORipt;报错
+	MOV AH,09H
+	INT 21H
+stop:    
+	MOV AH,4CH
+    INT 21H
+;_________________________1______________________________
+CHANGE PROC NEAR
+	
+beginint:
+	lea dx,input    ;给出输入提示
+    mov ah,9
+    int 21h
+    
+    lea dx,numin		;从键盘接收输入数值放入numin缓冲区
+    mov ah,0AH
+    int 21h
+    
+    enterline		;回车换行
+    
+PRINT:
+mov ax,0
+mov bx,0
+mov si,0
+LEA SI,INPUTSTR
+LEA DI,NUMIN
+
+i0:	mov cx,0
+	MOV AL,[SI+2]
+	CMP AL,'$'
+	JE NORMAL
+	CMP AL,[DI+2]
+	jne I2
+	
+	cmp AL,65
+	JAE I1
+	JMP I2
+I1:	cmp AL,90
+	JBE JIA
+	CMP AL,97
+	JB I2
+	CMP AL,122
+	JA I2
+JIAN:
+	SUB AL,20H
+	JMP SHUCHU
+JIA:	
+	add AL,20H
+
+	;输出
+SHUCHU:
+	mov dl,AL
+	mov ah,2
+	int 21h
+	;sub [si+2],bl
+	JMP I3
+I2:	
+	mov dl,[si+2]
+	mov ah,2
+	int 21h
+I3:
+	INC SI
+	JMP I0
+
+E:MOV DX,OFFSET ERROR
+	MOV AH,09H
+	INT 21H
+	jmp beginint 		;如出错则返回起始点重新输入  
+	enterline
+NORMAL:
+RET
+CHANGE ENDP
+;_________________________2______________________________
+DELETE PROC NEAR
+	
+BEGINDEL:
+    
+	mov ax,0
+	mov bx,0
+	mov si,0
+	LEA SI,INPUTSTR
+	LEA DI,NUMIN
+D1:
+	MOV AL,[SI+2]
+	CMP AL,'$'
+	JE NORMAL
+	CMP AL,[DI+2]
+	jne D2
+	JMP D3
+D2:	
+	mov dl,[si+2]
+	mov ah,2
+	int 21h
+D3:
+	INC SI
+	JMP D1
+
+NORMAL:
+RET
+DELETE ENDP
+;===============================================================
+CODES ENDS
+    END START
+
+
+
+
+
+
+
+
+
+
+

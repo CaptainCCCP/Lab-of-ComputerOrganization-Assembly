@@ -1,0 +1,135 @@
+;输出sum/6
+enterline
+	mov dx,offset average;提示
+	mov ah,9
+	int 21h
+
+	xor ax,ax
+	mov cl,6
+	
+	mov ax,sum
+	
+	div cl			;al商ah余数
+
+	mov beforepoint,al
+	mov afterpoint,ah
+	xor ax,ax
+	mov cl,10
+	mov al,beforepoint
+	div cl			;al商ah余数
+	
+	mov cl,ah
+
+	add al,30h
+	mov dl,al
+	mov ah,02h
+	int 21h			;十位
+	add cl,30h
+	mov dl,cl
+	mov ah,02h
+	int 21h			;个位
+	mov dl,2eh		;小数点
+	mov ah,02h
+	int 21h
+;打印小数
+	mov cl,10
+	mov al,afterpoint
+	mul cl			;小数部分乘10
+
+	mov cl,6
+	div cl			;al商ah余数
+	
+	add al,30h
+	mov dl,al
+	mov ah,02h
+	int 21h
+;=========================================
+enterline
+;外循环
+	mov bx,1
+wai:
+;把si给bx	bx外，si内
+	mov si,1
+nei:				;内循环
+	mov cx,[si+1]
+	cmp	[si],cx
+	jbe next7
+	xchg [si],cx
+	xchg [si+1],cx
+	next7:
+	inc si
+	inc si
+
+	mov ax,12
+	sub ax,bx
+;si与11-bx比较
+	cmp si,ax
+
+	jne nei
+
+;wai
+	inc bx
+	inc bx
+
+	cmp bx,11
+	jne wai
+
+
+	mov si,1
+shuchu:   	
+	xor ax,ax
+	mov bl,10		;输出
+	mov ax,[si]
+	div bl			;al商ah余数
+	mov bl,ah
+	add al,30h
+	mov dl,al
+	mov ah,02h
+	int 21h
+	add bl,30h
+	mov dl,bl
+	mov ah,02h
+	int 21h 
+
+	mov dl,' '
+	mov ah,02h
+	int 21h 
+
+	inc si
+	inc si
+	cmp si,13
+	jne shuchu
+;=========================================
+	cmp al,'0'		;边界检查：如果输入不是0-9的数字，就报错
+	jb erriptstu
+	cmp al,'9'
+	ja erriptstu
+
+
+
+STA:
+	MOV SWAP,0
+	MOV CX,4
+	LEA SI,SCORE	
+	JMP P1
+P0: 
+	INC SI
+P1:
+	MOV DX,[SI]
+	MOV AX,[SI+1]
+	CMP DX,AX
+	JAE P2
+	JMP P3
+P2:
+	MOV BX,[SI]
+	XCHG [SI+1],BX
+	MOV [SI+1],BX
+	XOR BX,BX
+	MOV SWAP,1
+P3:
+	LOOP P0
+	CMP SWAP,0
+	JE PEND
+	JMP STA
+PEND:
+	
