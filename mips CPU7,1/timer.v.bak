@@ -1,0 +1,60 @@
+module timer(
+				input clk_i,
+				input rst_i,
+				input [3:2] add_i,	//addr
+				input we_i,        //write en
+				input [31:0] dat_i,//data in
+				
+				output [31:0] dat_o,//data out
+				output reg IRQ
+			);
+			/////////////////////////////////////////////////////
+	reg [31:0] CTRL;
+	// [31:4]0                            [3]IM ping bi
+	//[2:1]mode 00:mode0	01:mode1         [0]enable:count en
+	reg [31:0] PRESET;//initial
+	reg [31:0] COUNT;
+	//////////////////////////////////////////////////////
+	assign dat_o=(add_i==2'b00)?CTRL:(add_i==2'b01)?PRESET:(add_i==2'b10)?COUNT:dat_o;
+	initial
+		begin
+			CTRL = 32'b0;
+			IRQ = 1'b0;
+		end
+	
+	
+	always @(posedge clk_i or negedge rst_i)
+		begin
+		  if(we_i)begin
+		    if (add_i==2'b00) CTRL = dat_i;
+		    else if (add_i==2'b01) begin
+		            PRESET = dat_i; COUNT = PRESET;  
+		                           end
+		  end
+		  if(IRQ==1) IRQ<=0;
+			if(CTRL[2:1]==2'b00)//0
+				begin
+					if(COUNT == 0)
+						begin
+							CTRL[0] <= 0;
+							if(CTRL[3]==1) begin 
+							   IRQ <= 1'b1; CTRL[3] <=0;
+							end
+						end
+					     else if(CTRL[0]==1)begin
+					     COUNT <= COUNT - 1;
+					     end
+				end
+			else if(CTRL[2:1]==2'b01)//1
+				begin
+					if(COUNT == 0)
+						begin
+							COUNT <= PRESET;
+							if(CTRL[3]==1) IRQ <= 1'b1;
+						end
+					else if(CTRL[0]==1)begin
+					COUNT <= COUNT - 1;
+					end
+		  end
+	end
+endmodule
